@@ -1,0 +1,863 @@
+# Portal Scanner Configuration
+# Used by /career-ops scan to discover new offers automatically.
+#
+# Strategy (4 levels):
+#   0. Local parser → per-company `parser:` script for SSR/static career pages (zero-token)
+#   1. Playwright → careers_url of each company (real-time, reliable)
+#   2. HTTP JSON (WebFetch) → per-company `api:` on tracked_companies (see board_api_catalog below)
+#   3. WebSearch with site: filters (broad discovery, may be stale)
+#
+# IMPORTANT: Each company in tracked_companies MUST have careers_url.
+#   Prefer the BRANDED company careers URL whenever available; use ATS-hosted URL only as fallback.
+#   ✅ https://careers.mastercard.com   ⚠️ https://mastercard.wd1.myworkdayjobs.com (fallback only)
+#   ✅ https://openai.com/careers       ⚠️ https://job-boards.greenhouse.io/openai (fallback only)
+#   Exception: ATS-hosted careers_url is acceptable when no branded careers page exists.
+#   Using raw ATS URLs when a branded page exists can cause false 410 errors (job ID mismatch).
+#
+# HOW TO CUSTOMIZE:
+#   1. Copy this file to portals.yml in the project root
+#   2. Edit title_filter.positive with YOUR target role keywords
+#   3. Add/remove companies in tracked_companies
+#   4. Adjust search_queries for your preferred job boards
+#   5. Set enabled: false on companies you don't care about
+
+# -- Scan history recheck policy (optional) --
+# By default, URLs recorded in data/scan-history.tsv are deduped forever.
+# Set recheck_after_days to let previously added URLs become eligible again
+# after N days, useful for roles that reopen or are republished at the same URL.
+# Permanent invalid statuses such as blocked host or malformed URL still remain
+# deduped forever.
+#
+
+scan_history:
+  recheck_after_days: 30
+
+# -- Location filter (optional) --
+# Filter scanned jobs by location. Applied AFTER title filter, BEFORE dedup.
+# If this entire block is absent, all locations pass (current default behavior).
+#
+# Semantics (case-insensitive substring, in this order):
+#   - Empty location string on a job → pass (don't penalize missing data)
+#   - Any `always_allow` keyword present → pass (takes precedence over `block`)
+#   - Any `block` keyword present → reject
+#   - `allow` empty → pass (already cleared block)
+#   - `allow` non-empty → must match at least one keyword
+#
+# `always_allow` is optional. It rescues multi-location postings that name your
+# home region: with always_allow ["New York"] and block ["India"], a job listed
+# "Remote, New York or India" passes (New York wins), while "Remote, India" is
+# still rejected. Omit always_allow entirely and the filter behaves as before.
+#
+# Example below targets US-based remote + a couple of US metros, blocking
+# common foreign hubs. Customize to your geography.
+
+location_filter:
+  # Your home region
+  always_allow:
+    - "India"
+    - "Bangalore"
+    - "Bengaluru"
+
+  # Locations you want to see
+  allow:
+    # Remote
+    - "Remote"
+    - "India"
+    - "Anywhere in India"
+
+    # Primary
+    - "Bangalore"
+    - "Bengaluru"
+
+    # Other major tech hubs
+    - "Hyderabad"
+    - "Pune"
+    - "Chennai"
+    - "Gurugram"
+    - "Gurgaon"
+    - "Noida"
+    - "Delhi"
+    - "Mumbai"
+    - "Telangana"
+    - "Andhra pradesh"
+
+  # Locations to ignore
+  block:
+    - "United States"
+    - "USA"
+    - "Canada"
+    - "United Kingdom"
+    - "London"
+    - "Germany"
+    - "France"
+    - "Netherlands"
+    - "Ireland"
+    - "Spain"
+    - "Portugal"
+    - "Singapore"
+    - "Japan"
+    - "South Korea"
+    - "Australia"
+    - "New Zealand"
+    - "Brazil"
+    - "Mexico"
+
+# -- Salary filter (optional) --
+# Filter scanned jobs by annual compensation range. Applied AFTER location
+# filter, BEFORE dedup. Only applies when structured salary data exists.
+#
+# Semantics:
+#   - min/max are annual compensation filters (use annualized values)
+#   - max: 0 means "no upper limit"
+#   - If no salary data exists on a job, it passes (conservative behavior)
+#   - If both currencies are known and differ, the job is rejected by the salary filter
+#   - Partial ranges (min only or max only) work correctly
+#   - If this entire block is absent, salary is not filtered (default behavior)
+#
+# Example: target roles paying at least $100k, no upper limit
+# salary_filter:
+#   min: 100000
+#   max: 0
+#   currency: "USD"
+
+# -- Posting-age filter (optional) --
+# Opt-in freshness gate. Skips offers whose posting date (postedAt, supplied by
+# the provider) is older than N days. Offers from providers that expose no date
+# are never skipped — same "don't penalize missing data" rule as location_filter.
+# Absent, 0, or non-positive → disabled (all ages pass).
+#
+max_posting_age_days: 45
+#
+# Need an ABSOLUTE date window instead (e.g. "only postings from the 17th to
+# the 20th") rather than a relative "N days old" cutoff? Use the CLI flags
+# instead of a portals.yml key: `node scan.mjs --posted-after 2026-07-17
+# --posted-before 2026-07-20`. Same "don't penalize missing data" rule.
+
+# -- Trust filter (optional) --
+# Enriches each scanned job with a trust score (0-100) and flags.
+# Jobs are NEVER dropped — only annotated. The trust score helps you
+# prioritize which postings to evaluate first.
+#
+# Heuristics (V1):
+#   1. URL structure validation (malformed or non-http URLs)
+#   2. Missing application URL
+#   3. Suspicious domain detection (link shorteners, form builders)
+#   4. Company ↔ domain mismatch (with ATS allowlist)
+#
+# If this block is absent or enabled: false, all jobs get score 100.
+#
+# trust_filter:
+#   enabled: true
+#   suspicious_domains:
+#     - "bit.ly"
+#     - "tinyurl.com"
+#     - "t.co"
+#     - "forms.gle"
+#     - "goo.gl"
+#     - "shorturl.at"
+#   # Override the built-in ATS allowlist (greenhouse, lever, workday, etc.).
+#   # URLs hosted on these domains skip the company↔domain mismatch check.
+#   # ats_allowlist:
+#   #   - "greenhouse.io"
+#   #   - "ashbyhq.com"
+#   #   - "lever.co"
+#   #   - "custom-ats.example.com"
+
+# -- Content filter (optional) --
+# Filters on the job DESCRIPTION text, not just the title — useful when
+# companies post generic titles ("Software Engineer") with very different
+# stacks. Case-insensitive substring match.
+# Semantics:
+#   - A job with no description always passes (see provider support below)
+#   - Any `negative` keyword present → reject
+#   - `positive` empty → pass (after clearing negatives)
+#   - `positive` non-empty → at least one keyword must be present
+#   - If this entire block is absent, descriptions are not filtered (default)
+#
+# Provider support: the scanner is zero-token and only reads descriptions that
+# a provider already returns in its list payload — it never fetches each job
+# page. Currently Lever (`descriptionPlain`) supplies descriptions; jobs from
+# providers that don't always pass this filter (they're never silently dropped).
+#
+# Example: keep roles that mention Rust/Go, drop legacy PHP/WordPress shops
+# content_filter:
+#   positive:
+#     - "rust"
+#     - "golang"
+#   negative:
+#     - "php"
+#     - "wordpress"
+#
+# by_title_keyword (optional): scope a stricter positive/negative pair to only
+# the jobs matched via a specific title_filter.positive keyword, instead of
+# applying it to every scanned job. Useful when a title keyword is broad
+# enough to need extra confirmation from the description (e.g. "AI Engineer"
+# roles where you want the JD to actually mention a concrete AI tool) without
+# that same requirement leaking onto unrelated categories (Instructional
+# Designer, HR Coordinator, ...). Jobs matched via a keyword with no entry
+# here fall back to the global positive/negative pair above.
+# content_filter:
+#   by_title_keyword:
+#     "AI Engineer":
+#       positive:
+#         - "gpt"
+#         - "llm"
+#         - "claude"
+
+# -- Visa / work-authorization filter (optional) --
+# Surfaces roles that sponsor a work visa (H-1B / H-1B1 / O-1 for the US, plus
+# the generic "visa sponsorship" wording) and drops roles that explicitly refuse
+# it. Like content_filter it reads the job DESCRIPTION text, so it only has
+# signal for providers whose list API ships a description (Lever today).
+# Semantics (case-insensitive substring):
+#   - Any `negative` keyword present → reject (an explicit "no sponsorship")
+#   - require_mention: false (default) → after clearing negatives, pass — jobs
+#     with no description included. Use this to only weed out explicit rejections.
+#   - require_mention: true → keep only jobs whose description advertises
+#     sponsorship (contains a `positive` keyword); missing description → reject.
+#   - `positive`/`negative` default to a curated US-sponsorship vocabulary when
+#     omitted, so `visa_filter: { enabled: true }` works out of the box.
+#   - If this entire block is absent, jobs are not filtered on sponsorship.
+#
+# Minimal: drop only the postings that say they won't sponsor
+# visa_filter:
+#   enabled: true
+#
+# Strict: only surface postings that explicitly advertise US sponsorship
+visa_filter:
+  enabled: false
+  # Disabled — you're authorized in India, no sponsorship needed.
+  # Re-enable if you start targeting US/EU roles requiring visa support.
+  # require_mention: true
+  # positive:
+  #   - "visa sponsorship"
+  #   - "h-1b"
+  #   - "will sponsor"
+  # negative:
+  #   - "no sponsorship"
+  #   - "unable to sponsor"
+
+# -- Title filter --
+# The scanner uses these keywords to decide if a title is relevant.
+# At least 1 positive must match AND 0 negatives must match (case-insensitive).
+#
+# skip_tiers: [intern, entry]  # optional: skip listings by seniority tier (note: unrecognized/plain titles fall back to 'mid')
+
+title_filter:
+  positive:
+    # Core software engineering
+    - "Software Engineer"
+    - "Software Developer"
+    - "SDE"
+    - "Full Stack"
+    - "Full-Stack"
+    - "Frontend"
+    - "Front End"
+    - "Backend"
+    - "Back End"
+    - "Web Developer"
+    - "Web Engineer"
+    - "Application Developer"
+
+    # JavaScript ecosystem
+    - "JavaScript"
+    - "TypeScript"
+    - "React"
+    - "ReactJS"
+    - "Node.js"
+    - "NodeJS"
+    - "Express"
+
+    # Backend/API
+    - "API"
+    - "REST"
+    - "Platform Engineer"
+
+    # AI (adjacent)
+    - "AI"
+    - "GenAI"
+    - "Generative AI"
+    - "LLM"
+    - "AI Engineer"
+
+  negative:
+    # Experience levels
+    - "Senior"
+    - "Staff"
+    - "Principal"
+    - "Lead"
+    - "Director"
+    - "Manager"
+    - "Architect"
+    - "VP"
+    - "Head"
+
+    # Mobile/Desktop
+    - "iOS"
+    - "Android"
+    - "Flutter"
+    - "Xamarin"
+
+    # Languages/frameworks you're not targeting
+    - ".NET"
+    - "C#"
+    - "Java "
+    - "Spring"
+    - "Spring Boot"
+    - "PHP"
+    - "Laravel"
+    - "Ruby"
+    - "Rails"
+    - "WordPress"
+
+    # Hardware
+    - "Embedded"
+    - "Firmware"
+    - "FPGA"
+    - "ASIC"
+    - "Electrical"
+    - "Electronics"
+
+    # Enterprise niches
+    - "Salesforce"
+    - "SAP"
+    - "Mainframe"
+    - "COBOL"
+
+    # Other niches
+    - "Blockchain"
+    - "Crypto"
+
+    # Non-engineering
+    - "Network"
+    - "Security"
+
+  seniority_boost:
+    # Prioritize new-grad friendly titles
+    - "Graduate"
+    - "New Grad"
+    - "Entry Level"
+    - "Associate"
+    - "SDE I"
+    - "Software Engineer I"
+
+
+# -- Search queries --
+# Customized for: Rayala Sai Praneeth — Full-Stack / Backend SDE (SDE I / Junior)
+# Stack: Node.js/Express, React/Next.js, MongoDB, REST APIs, AWS, Docker, CI/CD
+# Location: Bangalore, India — open to remote (India + global remote)
+# Each query triggers a WebSearch. Use site: to filter by portal.
+# The scanner extracts title, URL, and company from results.
+
+# -- Search queries --
+# Customized for: Rayala Sai Praneeth — Software Engineer (SDE I / Junior)
+# Target roles: Software Engineer, Full-Stack, Backend, Frontend, React, Node.js
+# Stack: JavaScript, TypeScript, React, Next.js, Node.js, Express, MongoDB, REST APIs, AWS
+# Location: India (Bangalore) + Remote + Visa Sponsorship
+
+search_queries:
+
+  # ==========================================================
+  # Greenhouse
+  # ==========================================================
+
+  - name: Greenhouse — Software Engineering
+    query: 'site:boards.greenhouse.io OR site:job-boards.greenhouse.io ("Software Engineer" OR "Software Developer" OR "SDE" OR "Full Stack Engineer" OR "Full-Stack Developer" OR "Backend Engineer" OR "Backend Developer" OR "Frontend Engineer" OR "Frontend Developer")'
+    enabled: true
+
+  - name: Greenhouse — JavaScript Stack
+    query: 'site:boards.greenhouse.io OR site:job-boards.greenhouse.io (JavaScript OR TypeScript OR React OR ReactJS OR Next.js OR Node.js OR Express OR MongoDB)'
+    enabled: true
+
+  - name: Greenhouse — New Grad
+    query: 'site:boards.greenhouse.io OR site:job-boards.greenhouse.io ("New Grad" OR Graduate OR "SDE I" OR Associate OR Fresher)'
+    enabled: true
+
+  - name: Greenhouse — Visa Sponsorship
+    query: 'site:boards.greenhouse.io ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer") ("visa sponsorship" OR "H-1B" OR relocation)'
+    enabled: true
+
+
+  # ==========================================================
+  # Ashby
+  # ==========================================================
+
+  - name: Ashby — Software Engineering
+    query: 'site:jobs.ashbyhq.com ("Software Engineer" OR "Software Developer" OR "Full Stack Engineer" OR "Backend Engineer" OR "Frontend Engineer")'
+    enabled: true
+
+  - name: Ashby — JavaScript Stack
+    query: 'site:jobs.ashbyhq.com (JavaScript OR TypeScript OR React OR Next.js OR Node.js OR Express OR MongoDB)'
+    enabled: true
+
+  - name: Ashby — New Grad
+    query: 'site:jobs.ashbyhq.com ("New Grad" OR Graduate OR Associate OR "SDE I")'
+    enabled: true
+
+  - name: Ashby — Founding Engineer
+    query: 'site:jobs.ashbyhq.com ("Founding Engineer" OR "Early Engineer") (Node.js OR React OR TypeScript)'
+    enabled: true
+
+  - name: Ashby — Visa Sponsorship
+    query: 'site:jobs.ashbyhq.com ("Software Engineer" OR "Full Stack Engineer") ("visa sponsorship" OR "will sponsor")'
+    enabled: true
+
+
+  # ==========================================================
+  # Lever
+  # ==========================================================
+
+  - name: Lever — Software Engineering
+    query: 'site:jobs.lever.co ("Software Engineer" OR "Software Developer" OR "Full Stack Engineer" OR "Backend Engineer" OR "Frontend Engineer")'
+    enabled: true
+
+  - name: Lever — JavaScript Stack
+    query: 'site:jobs.lever.co (JavaScript OR TypeScript OR React OR Node.js OR Next.js)'
+    enabled: true
+
+  - name: Lever — New Grad
+    query: 'site:jobs.lever.co ("New Grad" OR Graduate OR Associate OR "SDE I")'
+    enabled: true
+
+  - name: Lever — Visa Sponsorship
+    query: 'site:jobs.lever.co ("Software Engineer" OR "Full Stack Engineer") ("visa sponsorship" OR "H-1B" OR relocation)'
+    enabled: true
+
+
+  # ==========================================================
+  # Workday
+  # ==========================================================
+
+  - name: Workday — Software Engineering
+    query: 'site:myworkdayjobs.com ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+  - name: Workday — JavaScript Stack
+    query: 'site:myworkdayjobs.com (Node.js OR React OR TypeScript OR JavaScript)'
+    enabled: true
+
+
+  # ==========================================================
+  # SmartRecruiters
+  # ==========================================================
+
+  - name: SmartRecruiters — Software Engineering
+    query: 'site:jobs.smartrecruiters.com ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # Jobvite
+  # ==========================================================
+
+  - name: Jobvite — Software Engineering
+    query: 'site:careers.jobvite.com ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # Workable
+  # ==========================================================
+
+  - name: Workable — Software Engineering
+    query: 'site:apply.workable.com ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # GoHire
+  # ==========================================================
+
+  - name: GoHire — Software Engineering
+    query: 'site:jobs.gohire.io ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # ApplyToJob
+  # ==========================================================
+
+  - name: ApplyToJob — Software Engineering
+    query: 'site:applytojob.com ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # YC Startups
+  # ==========================================================
+
+  - name: YC Jobs
+    query: 'site:workatastartup.com ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer" OR "Founding Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # Wellfound
+  # ==========================================================
+
+  - name: Wellfound
+    query: 'site:wellfound.com ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # India
+  # ==========================================================
+
+  - name: Naukri
+    query: 'site:naukri.com ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer") Bangalore OR Remote'
+    enabled: true
+
+  - name: Instahyre
+    query: 'site:instahyre.com ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+  - name: Cutshort
+    query: 'site:cutshort.io ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+  - name: Hirist
+    query: 'site:hirist.tech ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # Remote-first
+  # ==========================================================
+
+  - name: RemoteOK
+    query: 'site:remoteok.com ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+  - name: WeWorkRemotely
+    query: 'site:weworkremotely.com ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+  - name: Himalayas
+    query: 'site:himalayas.app ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+  - name: Remotive
+    query: 'site:remotive.com ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+  - name: Working Nomads
+    query: 'site:workingnomads.com ("Software Engineer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer")'
+    enabled: true
+
+
+  # ==========================================================
+  # AI (secondary target)
+  # ==========================================================
+
+  - name: Applied AI
+    query: '("AI Engineer" OR "Applied AI Engineer" OR "AI Software Engineer" OR "Machine Learning Engineer" OR "GenAI Engineer" OR "LLM Engineer") (Node.js OR JavaScript OR TypeScript OR React OR Python)'
+    enabled: true
+
+
+  # ==========================================================
+  # LinkedIn
+  # ==========================================================
+
+  - name: LinkedIn — Software Engineering
+    query: 'site:linkedin.com/jobs ("Software Engineer" OR "Software Developer" OR "Backend Engineer" OR "Frontend Engineer" OR "Full Stack Engineer") India OR Remote'
+    enabled: true
+
+  - name: LinkedIn — Visa Sponsorship
+    query: 'site:linkedin.com/jobs ("Software Engineer" OR "Backend Engineer") ("visa sponsorship" OR relocation)'
+    enabled: false
+
+  - name: LinkedIn — New Grad
+    query: 'site:linkedin.com/jobs ("New Grad Software Engineer" OR "Graduate Software Engineer" OR "SDE I" OR Associate)'
+    enabled: true
+
+# -- Tracked companies --
+# Companies whose career pages are checked directly.
+# scan_method: playwright (default), websearch, local_parser
+# For Greenhouse/Lever/Ashby/Workday companies, prefer api:/auto-detect over
+# scan_method: websearch — it's faster and more reliable than scraping search
+# results. websearch is the fallback for companies on custom/in-house portals.
+#
+# ============================================================
+# CUSTOMIZED FOR: Rayala Sai Praneeth
+# Profile: Full-Stack / Backend SDE (SDE I / Junior), Node.js/Express,
+#          React/Next.js/TypeScript, MongoDB, AWS. Bangalore-based.
+#          Not targeting AI-specific roles — general SWE/full-stack/backend.
+
+tracked_companies:
+
+  # -- FAANG / Big Tech (large India engineering centers; high bar, but --
+  # -- worth applying broadly — filtered toward new-grad/entry postings) --
+
+  - name: Google
+    careers_url: https://careers.google.com/jobs/results
+    scan_method: websearch
+    scan_query: 'site:careers.google.com ("Software Engineer" OR "New Grad" OR "University Graduate") Bangalore OR Hyderabad'
+    notes: "Bangalore/Hyderabad engineering centers."
+    enabled: true
+
+  - name: Microsoft
+    careers_url: https://jobs.careers.microsoft.com/global/en/search
+    scan_method: websearch
+    scan_query: 'site:jobs.careers.microsoft.com "Software Engineer" (entry OR "new grad" OR "university hire") Hyderabad OR Bangalore OR Noida'
+    notes: "Large India Development Center (Hyderabad, Bangalore, Noida)."
+    enabled: true
+
+  - name: Amazon
+    careers_url: https://www.amazon.jobs
+    scan_method: websearch
+    scan_query: 'site:amazon.jobs ("Software Development Engineer" OR "SDE I" OR "SDE-1") Bangalore OR Hyderabad OR Chennai'
+    notes: "Large SDE org across Bangalore, Hyderabad, Chennai."
+    enabled: true
+
+  - name: Meta
+    careers_url: https://www.metacareers.com/jobs
+    scan_method: websearch
+    scan_query: 'site:metacareers.com/jobs "Software Engineer" (entry OR "early career" OR "university") India'
+    notes: "Smaller India footprint than Google/Amazon/Microsoft."
+    enabled: true
+
+  - name: Apple
+    careers_url: https://jobs.apple.com
+    scan_method: websearch
+    scan_query: 'site:jobs.apple.com "Software Engineer" (entry OR "new grad") Bangalore OR Hyderabad'
+    notes: "Hyderabad and Bangalore offices."
+    enabled: true
+
+  - name: NVIDIA
+    careers_url: https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite
+    notes: "Workday auto-detects from the URL pattern — no scan_method override needed."
+    enabled: true
+
+  - name: Adobe
+    careers_url: https://careers.adobe.com
+    scan_method: websearch
+    scan_query: 'site:careers.adobe.com "Software Engineer" (entry OR "new grad") Bangalore OR Noida'
+    notes: "Bangalore and Noida engineering centers."
+    enabled: true
+
+  # -- Indian Product Companies (strong Node.js/React/MERN fit, --
+  # -- more realistic junior-level volume than FAANG) --
+
+  - name: Razorpay
+    careers_url: https://razorpay.com/jobs
+    api: https://boards-api.greenhouse.io/v1/boards/razorpay/jobs
+    notes: "Bangalore HQ. Fintech, Node.js/backend-heavy."
+    enabled: true
+
+  - name: PhonePe
+    careers_url: https://www.phonepe.com/careers
+    scan_method: websearch
+    scan_query: 'site:phonepe.com/careers "Software Engineer" (entry OR junior OR SDE1)'
+    notes: "Bangalore HQ. High-scale fintech backend systems."
+    enabled: true
+
+  - name: Flipkart
+    careers_url: https://www.flipkartcareers.com
+    scan_method: websearch
+    scan_query: 'site:flipkartcareers.com "Software Engineer" (entry OR "new grad" OR SDE1)'
+    notes: "Bangalore HQ. Large-scale e-commerce backend."
+    enabled: true
+
+  - name: Meesho
+    careers_url: https://careers.meesho.com
+    scan_method: websearch
+    scan_query: 'site:careers.meesho.com "Software Engineer" (entry OR junior)'
+    notes: "Bangalore HQ. E-commerce, full-stack + backend hiring."
+    enabled: true
+
+  - name: Swiggy
+    careers_url: https://careers.swiggy.com
+    scan_method: websearch
+    scan_query: 'site:careers.swiggy.com "Software Engineer" (entry OR junior)'
+    notes: "Bangalore HQ. Node.js/React-friendly engineering org."
+    enabled: true
+
+  - name: Zomato
+    careers_url: https://www.zomato.com/careers
+    scan_method: websearch
+    scan_query: 'site:zomato.com/careers "Software Engineer" (entry OR junior)'
+    notes: "Gurgaon HQ, remote-friendly for many roles."
+    enabled: true
+
+  - name: CRED
+    careers_url: https://careers.cred.club
+    scan_method: websearch
+    scan_query: 'site:careers.cred.club "Software Engineer" (entry OR junior)'
+    notes: "Bangalore HQ. Strong engineering brand."
+    enabled: true
+
+  - name: Groww
+    careers_url: https://groww.skillate.com
+    scan_method: websearch
+    scan_query: 'site:groww.skillate.com "Software Engineer" (entry OR junior)'
+    notes: "Bangalore HQ. Fintech/investing platform."
+    enabled: true
+
+  - name: BrowserStack
+    careers_url: https://www.browserstack.com/careers
+    scan_method: websearch
+    scan_query: 'site:browserstack.com/careers "Software Engineer" (entry OR junior)'
+    notes: "Mumbai/Bangalore. Dev-tools — testing infra."
+    enabled: true
+
+  - name: Postman
+    careers_url: https://www.postman.com/company/careers
+    api: https://boards-api.greenhouse.io/v1/boards/postman/jobs
+    notes: "Bangalore HQ (dual w/ SF). API tooling — you already list Postman as a tool."
+    enabled: true
+
+  - name: Freshworks
+    careers_url: https://www.freshworks.com/company/careers
+    api: https://boards-api.greenhouse.io/v1/boards/freshworks/jobs
+    notes: "Chennai HQ. SaaS suite, React/Node-friendly stack."
+    enabled: true
+
+  - name: Zoho
+    careers_url: https://careers.zohocorp.com
+    scan_method: websearch
+    scan_query: 'site:careers.zohocorp.com ("Software Developer" OR "Member Technical Staff") (entry OR fresher)'
+    notes: "Chennai HQ. Strong junior/fresher hiring pipeline."
+    enabled: true
+
+  - name: Chargebee
+    careers_url: https://www.chargebee.com/careers
+    scan_method: websearch
+    scan_query: 'site:chargebee.com/careers "Software Engineer" (entry OR junior)'
+    notes: "Chennai HQ. Subscription billing SaaS, Node.js-heavy backend."
+    enabled: true
+
+  - name: Juspay
+    careers_url: https://juspay.in/careers
+    scan_method: websearch
+    scan_query: 'site:juspay.in/careers "Software Engineer" (entry OR junior)'
+    notes: "Bangalore HQ. Payments infra, strong backend engineering culture."
+    enabled: true
+
+  - name: Slice
+    careers_url: https://sliceit.com/careers
+    scan_method: websearch
+    scan_query: 'site:sliceit.com/careers "Software Engineer" (entry OR junior)'
+    notes: "Bangalore HQ. Fintech, full-stack + backend hiring."
+    enabled: true
+
+  - name: Innovaccer
+    careers_url: https://innovaccer.com/careers
+    scan_method: websearch
+    scan_query: 'site:innovaccer.com/careers "Software Engineer" (entry OR junior)'
+    notes: "Noida/Bangalore. Healthcare data platform, MERN-adjacent stack."
+    enabled: true
+
+  - name: Urban Company
+    careers_url: https://www.urbancompany.com/careers
+    scan_method: websearch
+    scan_query: 'site:urbancompany.com/careers "Software Engineer" (entry OR junior)'
+    notes: "Gurgaon/Bangalore. Marketplace platform, full-stack roles."
+    enabled: true
+
+  - name: Darwinbox
+    careers_url: https://darwinbox.com/careers
+    scan_method: websearch
+    scan_query: 'site:darwinbox.com/careers "Software Engineer" (entry OR junior)'
+    notes: "Hyderabad HQ. HR SaaS, full-stack hiring."
+    enabled: true
+
+  # -- Enterprise Software --
+
+  - name: Atlassian
+    careers_url: https://www.atlassian.com/company/careers
+    api: https://boards-api.greenhouse.io/v1/boards/atlassian/jobs
+    notes: "Bangalore engineering center. Broad full-stack/backend hiring."
+    enabled: true
+
+  - name: Salesforce
+    careers_url: https://careers.salesforce.com
+    scan_method: websearch
+    scan_query: 'site:careers.salesforce.com "Software Engineer" (entry OR "associate") India OR Hyderabad'
+    notes: "Hyderabad engineering center."
+    enabled: true
+
+  - name: Oracle
+    careers_url: https://careers.oracle.com
+    scan_method: websearch
+    scan_query: 'site:careers.oracle.com "Software Engineer" (entry OR "new college graduate") Bangalore OR Hyderabad'
+    notes: "Bangalore/Hyderabad, large India presence."
+    enabled: true
+
+  - name: Cisco
+    careers_url: https://jobs.cisco.com
+    scan_method: websearch
+    scan_query: 'site:jobs.cisco.com "Software Engineer" (entry OR "new grad") Bangalore'
+    notes: "Bangalore engineering center."
+    enabled: true
+
+  - name: IBM
+    careers_url: https://www.ibm.com/careers
+    scan_method: websearch
+    scan_query: 'site:ibm.com/careers "Software Engineer" (entry OR "early professional") Bangalore OR Pune'
+    notes: "Large India delivery + engineering centers."
+    enabled: true
+
+  # -- IT Services / Consulting (high-volume junior/graduate hiring — --
+  # -- realistic parallel track alongside product-company applications) --
+
+  - name: Infosys
+    careers_url: https://career.infosys.com
+    scan_method: websearch
+    scan_query: 'site:career.infosys.com ("Software Engineer" OR "Specialist Programmer") Bangalore'
+    notes: "Bangalore HQ."
+    enabled: true
+
+  - name: Wipro
+    careers_url: https://careers.wipro.com
+    scan_method: websearch
+    scan_query: 'site:careers.wipro.com "Software Engineer" Bangalore'
+    notes: "Bangalore HQ."
+    enabled: true
+
+  - name: TCS
+    careers_url: https://www.tcs.com/careers
+    scan_method: websearch
+    scan_query: 'site:tcs.com/careers "Software Engineer" OR "Ninja" Bangalore OR Chennai'
+    notes: "Largest Indian IT services employer by headcount."
+    enabled: true
+
+  - name: Cognizant
+    careers_url: https://careers.cognizant.com
+    scan_method: websearch
+    scan_query: 'site:careers.cognizant.com "Software Engineer" Bangalore OR Chennai'
+    enabled: true
+
+  - name: Accenture
+    careers_url: https://www.accenture.com/in-en/careers
+    scan_method: websearch
+    scan_query: 'site:accenture.com/in-en/careers "Software Engineer" Bangalore'
+    enabled: true
+
+  - name: Capgemini
+    careers_url: https://www.capgemini.com/careers
+    scan_method: websearch
+    scan_query: 'site:capgemini.com/careers "Software Engineer" Bangalore OR Mumbai'
+    enabled: true
+
+  - name: HCLTech
+    careers_url: https://www.hcltech.com/careers
+    scan_method: websearch
+    scan_query: 'site:hcltech.com/careers "Software Engineer" Bangalore OR Chennai'
+    enabled: true
+
+  - name: Tech Mahindra
+    careers_url: https://careers.techmahindra.com
+    scan_method: websearch
+    scan_query: 'site:careers.techmahindra.com "Software Engineer" Bangalore'
+    enabled: true
+
+# ── Job Boards ────────────────────────────────────────────────────────
+# Multi-employer aggregators. Unlike tracked_companies (one entry = one employer),
+# job boards return offers from many companies in a single API call.
+# Same title/location filtering and dedup apply.
+
+# job_boards:
+
+  
+ 

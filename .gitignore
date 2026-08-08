@@ -1,6 +1,6 @@
 # Personal data (user fills these)
-cv.md
-article-digest.md
+# cv.md
+# article-digest.md
 local/
 # Everything under data/ is generated or personal at runtime — only .gitkeep
 # placeholders are tracked (verify with `git ls-files data/`). A blanket rule
@@ -54,11 +54,11 @@ writing-samples/*
 !writing-samples/README.md
 
 # User config and customization (never auto-updated)
-config/profile.yml
+# config/profile.yml
 config/cv-facts.json
 config/benchmarks.yml
-portals.yml
-modes/_profile.md
+# portals.yml
+# modes/_profile.md
 modes/_custom.md
 modes/_brief.md
 .update-dismissed

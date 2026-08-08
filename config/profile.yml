@@ -1,19 +1,18 @@
 # Career-Ops Profile Configuration
-# Copy this file to config/profile.yml and fill in your details.
 # This is the single source of truth for your personal data across all modes.
 
 candidate:
-  full_name: "Jane Smith"
-  email: "jane@example.com"
-  phone: "+1-555-0123"
+  full_name: "Rayala sai praneeth"
+  email: "Sai.sayhello@gmail.com"
+  phone: "+919791263149"
   # Optional. Used by `/career-ops email` contact blocks in markets where WeChat
   # is an expected recruiting channel. Omit or leave blank if not applicable.
   wechat: ""
-  location: "San Francisco, CA"
-  linkedin: "linkedin.com/in/janesmith"
-  portfolio_url: "https://janesmith.dev"
-  github: "github.com/janesmith"
-  twitter: "https://x.com/janesmith"
+  location: "Bengaluru,Karnataka,India"
+  linkedin: "linkedin.com/in/notpraneeth"
+  portfolio_url: ""
+  github: "github.com/notpraneeth"
+  twitter: ""
   # Optional profile photo for the PDF CV (opt-in, #264). Leave empty to omit it
   # entirely: US/UK and many-market ATS penalize photos, so the photoless layout
   # is the default. Set it only for DACH/European markets (Germany, Austria,
@@ -23,62 +22,149 @@ candidate:
   # Optional framing for the CV photo: rounded (default), circle, or square.
   photo_style: rounded
 
+
 target_roles:
   # Your North Star roles — what you're optimizing for
   primary:
-    - "Senior AI Engineer"
-    - "Staff ML Engineer"
+    - "Full-Stack Software Engineer"
+    - "React Developer"
+    - "Backend Engineer (Node.js)"
+    - "Frontend Engineer"
+    - "Backend Engineer"
+    - "Fullstack Developer"
+    - "Frontend Developer"
+    - "Software Engineer"
+    - "Software Developer"
+    - "Javascript Engineer"
+    - "Javascript Developer"
+    - "Typescript Engineer"
+    - "Typescript Developer"
+    - "API Developer"
+    - "Node.js Developer"
   # Archetypes help the evaluation system score fit
-  archetypes:
-    - name: "AI/ML Engineer"
-      level: "Senior/Staff"
-      fit: "primary"        # primary = dream role, secondary = good fit, adjacent = stretch
-    - name: "AI Product Manager"
-      level: "Senior"
-      fit: "secondary"
-    - name: "Solutions Architect"
-      level: "Mid-Senior"
-      fit: "adjacent"
+archetypes:
+  - name: "Software Engineer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Node.js Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Software Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Full-Stack Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Frontend Engineer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Frontend Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Backend Engineer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Backend/API Engineer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "React Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "JavaScript Engineer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "JavaScript Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "TypeScript Engineer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "TypeScript Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "API Developer"
+    level: "SDE I / Junior"
+    fit: "primary"
+
+  - name: "Web Application Engineer"
+    level: "SDE I / Junior"
+    fit: "secondary"
+
+  - name: "Platform Engineer"
+    level: "Junior"
+    fit: "secondary"
+
+  - name: "Cloud Engineer"
+    level: "Junior"
+    fit: "secondary"
+
+  - name: "Data/Pipeline Engineer"
+    level: "Junior"
+    fit: "secondary"
+
+  - name: "AI/GenAI Engineer"
+    level: "Junior"
+    fit: "adjacent"
 
 narrative:
   # Your professional headline (1 line)
-  headline: "ML Engineer turned AI product builder"
+  headline: "Full-Stack Software Engineer specializing in scalable backend systems and modern web applications"
+
   # Your exit story — what makes you unique
-  exit_story: "Built and sold my SaaS after 5 years. Now focused on applied AI at scale."
+  exit_story: "Built production SaaS applications, automated large-scale data pipelines processing 100K+ records/day, and shipped end-to-end features from React frontend to Node.js backend."
+
   # Your top 3-5 superpowers
   superpowers:
-    - "End-to-end ML pipelines"
-    - "Fast prototyping (idea to prod in 2 weeks)"
-    - "Cross-functional communication"
+    - "Rapid product development from idea to deployment"
+    - "End-to-end full-stack development"
+    - "Scalable backend API and database design"
+    - "Automation and data pipeline engineering"
+    - "Performance optimization and debugging"
+
   # Proof points — projects, articles, case studies with measurable impact
   proof_points:
-    - name: "Project Alpha"
-      url: "https://janesmith.dev/project-alpha"
-      hero_metric: "Reduced inference latency 40%"
-    - name: "Open Source Tool"
-      url: "https://github.com/janesmith/tool"
-      hero_metric: "2K+ GitHub stars"
+    - name: "League of Legends Recommendation Platform"
+      url: "https://github.com/NotPraneeth/Personalised-build-reccomender-for-league"
+      hero_metric: "Automated pipeline processing 100K+ records/day"
+
+    - name: "Stirring Minds SaaS Platform"
+      url: "https://stirringminds.com/deals"
+      hero_metric: "Built production SaaS with AWS services and 60+ partner integrations"
+
   # Optional: dashboard/demo URL with credentials
   # dashboard:
   #   url: "https://janesmith.dev/demo"
   #   password: "demo-2026"
 
 compensation:
-  target_range: "$150K-200K"     # Your target total comp
-  currency: "USD"
-  minimum: "$120K"               # Walk-away number
-  location_flexibility: "Remote preferred, 1 week/month on-site possible"
+  target_range: ""     # Your target total comp
+  currency: "INR"
+  minimum: ""               # Walk-away number
+  location_flexibility: ""
 
 location:
-  country: "United States"
-  city: "San Francisco"
-  timezone: "PST"
+  country: "India"
+  city: "Bengaluru"
+  timezone: "IST"
   visa_status: "No sponsorship needed"
   # Countries/regions where you ALREADY hold work authorization (no sponsorship
   # needed there). Drives the Work-Authorization signal in job evaluation
   # (modes/oferta.md → Block A "Work-authorization check"). Optional — omit or
   # leave [] if not applicable; the free-text visa_status above still applies.
-  authorized_in: ["United States"]
+  authorized_in: ["India"]
   # true if you need visa sponsorship for roles OUTSIDE authorized_in. When a JD
   # explicitly states it will not sponsor, that is a hard blocker (see
   # modes/_profile.md "Your Location Policy"). Omit → treated as false.
@@ -164,7 +250,7 @@ cover_letter:
   # Your notice period in calendar days. Surfaced as a prompt default when the
   # JD requests an immediate start. The user confirms the actual value before it
   # appears in the letter.
-  notice_period_days: 30
+  notice_period_days: 0
   # Which cover-letter template to use by default. Kebab-case name of a file in
   # templates/ named cover-letter-template.<name>.html. Unset -> built-in
   # templates/cover-letter-template.html.
@@ -172,21 +258,21 @@ cover_letter:
 
   # Your current professional domain (used to detect domain gaps vs the JD).
   # Plain English, e.g. "digital media", "fintech", "healthcare IT".
-  primary_domain: "your current domain"
+  primary_domain: "IT"
 
   # Languages you are actively learning. Each entry MAY produce a closing
   # sentence in that language IF the JD location matches one of the listed
   # countries AND the user confirms inclusion during the cover letter flow.
   # Remove the block entirely if not applicable.
-  language_learning:
-    - language: Spanish
-      current_level: B1
-      target_level: B2
-      target_date: "end of 2026"
-      # The sentence to include, written in that language. Keep it one line.
-      sentence: "Estoy aprendiendo español y espero alcanzar el nivel B2 a finales de 2026."
-      # Only trigger this entry when the JD location is in one of these countries.
-      countries: [Spain, Mexico, Argentina, Colombia, Chile]
+  # language_learning:
+  #   - language: Spanish
+  #     current_level: B1
+  #     target_level: B2
+  #     target_date: "end of 2026"
+  #     # The sentence to include, written in that language. Keep it one line.
+  #     sentence: "Estoy aprendiendo español y espero alcanzar el nivel B2 a finales de 2026."
+  #     # Only trigger this entry when the JD location is in one of these countries.
+  #     countries: [Spain, Mexico, Argentina, Colombia, Chile]
 
 # ── Contact Preferences ──────────────────────────────────────────────────────
 #
