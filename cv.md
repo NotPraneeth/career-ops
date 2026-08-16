@@ -17,7 +17,7 @@ Full-stack SDE who shipped a production SaaS used by real users. Built systems h
 **Stirring Minds** — New Delhi, India
 *February 2025 – June 2025*
 
-- Developed a full-stack SaaS platform bundling AWS services and 60+ partner services, serving both customers and enterprise partners.
+- Architected and built a full-stack Next.js/Node.js platform integrating 60+ third-party partner APIs (AWS, Zoho, Twilio, Zendesk, MongoDB, etc.) into a unified deal catalog, serving startup customers and enterprise partners in production.
 - Designed and implemented REST APIs and data models, handling JWT-based auth, metadata ingestion, and partner configuration workflows.
 - Owned feature development end-to-end: scoped requirements, designed data models, wrote and reviewed code, deployed via CI/CD, and shipped iterations — contributing directly to a measurable uplift in user adoption and engagement.
 

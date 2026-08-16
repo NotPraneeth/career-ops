@@ -57,9 +57,9 @@
 
 - Default to the XYZ phrasing as close to verbatim as the bullet allows. Accomplished [X], as measured by [Y], by doing [Z]. 
 
-example: "Increased signup conversion 22% by redesigning the onboarding flow to cut form fields from 12 to 4"
-X = increased signup conversion, Y = 22%, Z = redesigning the onboarding flow. You could also lead with Z if the method is the more impressive/relevant part for that job:
-"Redesigned the onboarding flow, cutting form fields from 12 to 4, which increased signup conversion 22%"
+  example: "Increased signup conversion 22% by redesigning the onboarding flow to cut form fields from 12 to 4"
+  X = increased signup conversion, Y = 22%, Z = redesigning the onboarding flow. You could also lead with Z if the method is the more impressive/relevant part for that job:
+  "Redesigned the onboarding flow, cutting form fields from 12 to 4, which increased signup conversion 22%"
 
 - Never include a photo, an objective statement, or first-person pronouns (I, my, me) anywhere on the resume.
 
