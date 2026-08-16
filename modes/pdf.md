@@ -70,7 +70,7 @@ Run `npm run jd:similarity -- {bundle-root}/jd/current.md {bundle-root}/jd/previ
 
 ## Recruiter Review Gates
 
-- The summary should answer: "What role is this person targeting, and why this one?"
+- The summary should answer: "What role is this person targeting, and why this one? How does he standout from other candidates?"
 - The first screen should show 1-2 proof points that map to the JD's highest-risk requirements.
 - Bullets should emphasize outcomes, systems, users, or business effects rather than task history.
 - Logistics such as location, work authorization, salary, and availability belong in the CV only when appropriate for the market and profile; otherwise handle them in form answers or recruiter scripts.

@@ -195,10 +195,11 @@ Subject: {subject}
 ### HR application structure
 
 1. Greeting
-2. Role intent and attachment sentence
-3. 2-3 fit points in one short paragraph or compact bullets
-4. Why this role is relevant, using JD language
-5. Contact block and signature
+2. TLDR;
+3. Role intent and attachment sentence
+4. 2-3 fit points in one short paragraph or compact bullets
+5. Why this role is relevant, using JD language
+6. Contact block and signature
 
 ### Referral request structure
 
