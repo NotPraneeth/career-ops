@@ -63,9 +63,11 @@ X = increased signup conversion, Y = 22%, Z = redesigning the onboarding flow. Y
 
 - Never include a photo, an objective statement, or first-person pronouns (I, my, me) anywhere on the resume.
 
-- Bold most relevant JD keywords in generated cv so that it's easier for the recruiter to notice.
+- 3 Bullet points per role, with the most relevant/impactful one first.
 
-- Drop the Core Competencies grid so that the resume fits on one page. 
+- Professional summary should be written in a way that exactly matches what the JD is asking for.
+
+- Drop the Core Competencies grid so that the resume fits on one page. Never include a `competencies` key in any CV payload — omit it entirely so the section never renders (the pipeline strips it automatically as a safety net, but it should never be generated in the first place). 
 
 <!--(none yet -- add yours above)-->
 
